@@ -102,7 +102,7 @@ sudo apt install ffmpeg chafa coreutils util-linux
    *   **视频信息获取:** 使用 `ffprobe` 获取视频的原始分辨率、时长等信息。
    *   **帧提取 (FFmpeg):** 使用 `ffmpeg` 将视频按指定的 FPS 提取为一系列 JPG 图像帧，并存放在临时目录的 `jpg_frames` 子目录中。
 
-**2. `preload` (预加载) 模式 (默认):**
+**2. `preload` (预加载) 模式 :**
    *   **Chafa 帧并行渲染:**
         *   脚本会遍历所有提取的 JPG 图像帧。
         *   使用 `xargs -P` 启动多个 `chafa` 进程，并行地将每个 JPG 帧转换为包含 ANSI 转义序列的文本文件。这些文本文件代表了终端上显示的字符画。
@@ -114,7 +114,7 @@ sudo apt install ffmpeg chafa coreutils util-linux
         *   根据设定的 FPS，在每帧之间进行短暂 `sleep`。
         *   播放完成后，恢复光标，显示完成信息。
 
-**3. `stream` (流式) 模式:**
+**3. `stream` (流式) 模式 (默认) ：**
    *   **后台 Chafa 帧并行渲染:**
         *   在 JPG 帧提取完成后，脚本会**在后台**启动 `render_all_chafa_frames_parallel` 函数。这个函数同样使用 `xargs -P` 并行渲染 Chafa 文本帧。
         *   主脚本**不会**等待所有帧渲染完成，而是立即进入播放阶段。

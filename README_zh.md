@@ -59,7 +59,7 @@ sudo apt install ffmpeg chafa coreutils util-linux
 | `-y`        | `--symbols`   | `SET`       | 设置字符集: `block` (方块), `ascii` (ASCII), `space` (空格)。              | `block`                              |
 | `-w`        | `--width`     | `WIDTH`     | 设置显示宽度 (字符数)。                                                      | 当前终端宽度                         |
 | `-t`        | `--height`    | `HEIGHT`    | 设置显示高度 (行数)。                                                        | 当前终端高度 - 2 行                  |
-| `-m`        | `--mode`      | `MODE`      | 设置播放模式: `preload` (预加载), `stream` (流式)。                        | `preload`                            |
+| `-m`        | `--mode`      | `MODE`      | 设置播放模式: `preload` (预加载), `stream` (流式)。                        | `stream`                            |
 |             | `--threads`   | `N`         | 设置 Chafa 并行渲染的线程数。                                                | 系统 CPU 核心数 (或 4)               |
 | `-q`        | `--quiet`     |             | 静默模式，禁止输出进度等信息。                                                 | 关闭                                 |
 | `-l`        | `--loop`      |             | 循环播放视频。                                                             | 关闭                                 |

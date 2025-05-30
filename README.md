@@ -66,7 +66,7 @@ Can be the path to a local video file (e.g., `video.mp4`, `/path/to/my/video.avi
 | `-y`      | `--symbols` | `SET`     | Set character set: `block`, `ascii`, `space`.                                | `block`                   |
 | `-w`      | `--width`   | `WIDTH`   | Set display width (in characters).                                           | Current terminal width    |
 | `-t`      | `--height`  | `HEIGHT`  | Set display height (in lines).                                               | Current terminal height - 2 lines |
-| `-m`      | `--mode`    | `MODE`    | Set playback mode: `preload`, `stream`.                                      | `preload`                 |
+| `-m`      | `--mode`    | `MODE`    | Set playback mode: `preload`, `stream`.                                      | `stream`                 |
 |           | `--threads` | `N`       | Set the number of threads for parallel Chafa rendering.                      | System CPU cores (or 4)   |
 | `-q`      | `--quiet`   |           | Quiet mode, suppresses progress and other information output.                | Off                       |
 | `-l`      | `--loop`    |           | Loop video playback.                                                         | Off                       |

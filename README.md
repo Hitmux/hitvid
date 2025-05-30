@@ -1,5 +1,7 @@
 # Hitmux `hitvid` - Terminal Video Player
 
+[简体中文](https://github.com/Hitmux/hitvid/blob/main/hitvid_zh.sh) [English](https://github.com/Hitmux/hitvid/blob/main/hitvid.sh)
+
 ## [Hitmux Official Website https://hitmux.top](https://hitmux.top)
 
 `hitvid` is a Bash script-based terminal video player that uses `ffmpeg` to extract video frames and `chafa` to render these frames as ASCII art, thereby enabling video playback directly in your terminal.

@@ -1,6 +1,6 @@
 # Hitmux `hitvid` - Terminal Video Player
 
-[简体中文](https://github.com/Hitmux/hitvid/blob/main/hitvid_zh.sh) [English](https://github.com/Hitmux/hitvid/blob/main/hitvid.sh)
+[简体中文](https://github.com/Hitmux/hitvid/blob/main/README_zh.md) [English](https://github.com/Hitmux/hitvid/blob/main/README.md)
 
 ## [Hitmux Official Website https://hitmux.top](https://hitmux.top)
 

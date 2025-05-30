@@ -5,22 +5,27 @@
 # Description: Play videos in terminal using chafa for rendering frames
 
 # Default settings
-FPS=15
-SCALE_MODE="fit"
-COLORS="256"
-DITHER="ordered"
-SYMBOLS="block"
-WIDTH=$(tput cols)
+FPS=5 # Set the playback frames per second.
+SCALE_MODE="fit" # Set scaling mode: fit, fill, stretch.
+COLORS="256" # Set color mode: 2, 16, 256, full (full color)
+DITHER="ordered" # Set dithering mode: none, ordered, diffusion.
+SYMBOLS="block" # Set character set: block, ascii, space.
+WIDTH=$(tput cols) # Set display width (in characters).
 HEIGHT=$(($(tput lines) - 2)) # Reserve 1 line for info, 1 for safety/prompt
-QUIET=0
-LOOP=0
+QUIET=0 # Quiet mode, suppresses progress and other information output.
+LOOP=0 # 	Loop video playback.
 PLAY_MODE="stream" # "preload" or "stream"
 NUM_THREADS=$(nproc --all 2>/dev/null || echo 4) # Default to 4 if nproc fails
 
 # --- Helper Functions ---
 cleanup() {
-    echo "Cleaning up temporary files..." >&2
+    # Restore cursor and switch back to normal screen buffer first
+    # so any subsequent messages appear on the normal screen if desired,
+    # or are hidden if rmcup is last.
     tput cnorm # Restore cursor
+    tput rmcup # Restore normal screen buffer
+
+    echo "Cleaning up temporary files..." >&2 # This will now appear on the normal screen
     # Kill background rendering process if it exists and is running
     if [[ -n "$RENDER_PID" ]] && ps -p "$RENDER_PID" > /dev/null; then
         echo "Terminating background rendering process $RENDER_PID..." >&2
@@ -93,8 +98,8 @@ setup_temp_dir() {
         cleanup # Attempt cleanup before exiting
         exit 1
     fi
-    # Set trap to clean up temporary files and restore cursor on exit
-    trap "cleanup; exit" INT TERM EXIT
+    # Set trap to clean up temporary files and restore cursor/screen on exit
+    trap "cleanup; exit" INT TERM EXIT # EXIT trap is important for normal termination
 }
 
 # Function to extract video information
@@ -113,62 +118,65 @@ get_video_info() {
 # Function to extract frames from video
 extract_frames() {
     local ffmpeg_output_file="$TEMP_DIR/ffmpeg_extract.log"
-    if [ $QUIET -eq 0 ]; then
-        echo "Extracting frames (this may take a while)..."
-        ffmpeg -i "$VIDEO_PATH" -vf "fps=$FPS" -q:v 2 "$JPG_FRAMES_DIR/frame-%05d.jpg" > "$ffmpeg_output_file" 2>&1
-    else
-        ffmpeg -i "$VIDEO_PATH" -vf "fps=$FPS" -q:v 2 "$JPG_FRAMES_DIR/frame-%05d.jpg" &>/dev/null
+
+    local ffmpeg_input_arg="$VIDEO_PATH"
+    if [[ "$VIDEO_PATH" == -* && "$VIDEO_PATH" != "-" && "$VIDEO_PATH" != http* && "$VIDEO_PATH" != /* ]]; then
+        ffmpeg_input_arg="./$VIDEO_PATH"
     fi
 
-    if [ $? -ne 0 ] && [ $QUIET -eq 0 ]; then
-        echo "Error during ffmpeg extraction. Log:" >&2
-        cat "$ffmpeg_output_file" >&2
+    if [ $QUIET -eq 0 ]; then
+        echo "Extracting frames (this may take a while)..."
+        ffmpeg -i "$ffmpeg_input_arg" -vf "fps=$FPS" -q:v 2 "$JPG_FRAMES_DIR/frame-%05d.jpg" > "$ffmpeg_output_file" 2>&1
+    else
+        ffmpeg -i "$ffmpeg_input_arg" -vf "fps=$FPS" -q:v 2 "$JPG_FRAMES_DIR/frame-%05d.jpg" &>/dev/null
+    fi
+
+    if [ $? -ne 0 ]; then
+        if [ $QUIET -eq 0 ]; then
+            echo "Error during ffmpeg extraction. Log:" >&2
+            cat "$ffmpeg_output_file" >&2
+        else
+            echo "Error during ffmpeg extraction. Run without --quiet for details." >&2
+        fi
     fi
 
     TOTAL_FRAMES=$(find "$JPG_FRAMES_DIR" -maxdepth 1 -type f -name "frame-*.jpg" | wc -l)
-    TOTAL_FRAMES=${TOTAL_FRAMES// /} # Remove whitespace
+    TOTAL_FRAMES=${TOTAL_FRAMES// /}
 
-    if [ "$TOTAL_FRAMES" -eq 0 ]; then echo "Error: No frames were extracted." >&2; cleanup; exit 1; fi
+    if [ "$TOTAL_FRAMES" -eq 0 ]; then echo "Error: No frames were extracted. Check video file and ffmpeg output." >&2; cleanup; exit 1; fi
     if [ $QUIET -eq 0 ]; then echo "Extracted $TOTAL_FRAMES frames at $FPS fps"; fi
 }
 
 # --- Chafa Rendering Functions ---
-# CHAFA_OPTS_RENDER will be set globally before calling these
-export CHAFA_OPTS_RENDER JPG_FRAMES_DIR CHAFA_FRAMES_DIR QUIET # Export for xargs subshell
+export CHAFA_OPTS_RENDER JPG_FRAMES_DIR CHAFA_FRAMES_DIR QUIET
 
-# Function to render a single frame (used by xargs)
 render_single_frame_for_xargs() {
-    local frame_jpg_basename="$1" # e.g., frame-00001.jpg
-    local frame_num_str="${frame_jpg_basename%.jpg}" # e.g., frame-00001
+    local frame_jpg_basename="$1"
+    local frame_num_str="${frame_jpg_basename%.jpg}"
     local jpg_path="$JPG_FRAMES_DIR/$frame_jpg_basename"
-    local txt_path="$CHAFA_FRAMES_DIR/${frame_num_str}.txt" # e.g. chafa_frames/frame-00001.txt
+    local txt_path="$CHAFA_FRAMES_DIR/${frame_num_str}.txt"
 
     if [ ! -f "$jpg_path" ]; then
         if [ "$QUIET" -eq 0 ]; then echo "Warning: JPG $jpg_path not found for rendering." >&2; fi
         return 1
     fi
-    # The --clear in CHAFA_OPTS_RENDER is important
     chafa $CHAFA_OPTS_RENDER "$jpg_path" > "$txt_path"
     return $?
 }
-export -f render_single_frame_for_xargs # Make function available to xargs subshells
+export -f render_single_frame_for_xargs
 
-# Function to pre-render all chafa frames in parallel
 render_all_chafa_frames_parallel() {
     if [ $QUIET -eq 0 ]; then
         echo "Pre-rendering $TOTAL_FRAMES Chafa frames using up to $NUM_THREADS threads..."
     fi
 
-    # Build CHAFA_OPTS_RENDER
     CHAFA_OPTS_RENDER="--clear --size=${WIDTH}x${HEIGHT} --colors=$COLORS --dither=$DITHER"
     case $SCALE_MODE in "fill") CHAFA_OPTS_RENDER+=" --zoom";; "stretch") CHAFA_OPTS_RENDER+=" --stretch";; esac
     case $SYMBOLS in "block") CHAFA_OPTS_RENDER+=" --symbols=block";; "ascii") CHAFA_OPTS_RENDER+=" --symbols=ascii";; "space") CHAFA_OPTS_RENDER+=" --symbols=space";; esac
-    export CHAFA_OPTS_RENDER # Ensure it's available to subshells spawned by xargs
+    export CHAFA_OPTS_RENDER
 
-    # Create a list of frame basenames to process
     find "$JPG_FRAMES_DIR" -maxdepth 1 -type f -name "frame-*.jpg" -printf "%f\n" | \
         xargs -P "$NUM_THREADS" -I {} bash -c 'render_single_frame_for_xargs "$@"' _ {}
-        # The `_` is a placeholder for $0 in the bash -c command
 
     local rendered_count=$(find "$CHAFA_FRAMES_DIR" -maxdepth 1 -type f -name "frame-*.txt" | wc -l)
     rendered_count=${rendered_count// /}
@@ -177,7 +185,6 @@ render_all_chafa_frames_parallel() {
     fi
     if [ "$rendered_count" -ne "$TOTAL_FRAMES" ]; then
         echo "Warning: Expected $TOTAL_FRAMES rendered frames, but found $rendered_count." >&2
-        # This could happen if some JPGs were missing or chafa failed on some.
     fi
 }
 
@@ -188,8 +195,9 @@ play_chafa_frames() {
     local info_line
     info_line=$(($(tput lines) - 1))
 
+    tput smcup # Switch to alternate screen buffer
     tput civis # Hide cursor
-    clear     # Initial clear
+    clear     # Initial clear of the alternate screen
 
     local current_loop=1
     while true; do
@@ -202,36 +210,31 @@ play_chafa_frames() {
             frame_num_padded=$(printf "frame-%05d" "$i_seq")
             local chafa_frame_file="$CHAFA_FRAMES_DIR/${frame_num_padded}.txt"
 
-            # For "stream" mode, wait if the frame isn't ready yet
             if [ "$PLAY_MODE" == "stream" ]; then
                 local wait_count=0
                 while [ ! -f "$chafa_frame_file" ]; do
-                    # Check if background renderer is still alive
                     if [[ -n "$RENDER_PID" ]] && ! ps -p "$RENDER_PID" > /dev/null; then
-                        # Renderer died, and frame is missing. This is an error.
-                        if [ ! -f "$chafa_frame_file" ]; then # Double check, race condition
+                        if [ ! -f "$chafa_frame_file" ]; then
                            echo -e "\nError: Background renderer died and frame $chafa_frame_file is missing." >&2
-                           # Attempt to show cursor and exit trap will do the rest
-                           tput cnorm
-                           exit 1 # This will trigger the trap
+                           # cleanup will be called by trap
+                           exit 1
                         fi
                     fi
-                    sleep 0.01 # Small sleep to avoid pegging CPU while waiting
+                    sleep 0.01
                     wait_count=$((wait_count + 1))
-                    if [ $QUIET -eq 0 ] && (( wait_count % 50 == 0 )); then # Print waiting message every ~0.5s
+                    if [ $QUIET -eq 0 ] && (( wait_count % 50 == 0 )); then
                         tput cup "$info_line" 0
                         printf "Playing: Waiting for frame %s/%d (Renderer PID: %s)..." "$frame_num_padded" "$TOTAL_FRAMES" "${RENDER_PID:-N/A}"
                         tput el
                     fi
                 done
-            elif [ ! -f "$chafa_frame_file" ]; then # Preload mode, frame should exist
+            elif [ ! -f "$chafa_frame_file" ]; then
                 echo -e "\nError: Frame $chafa_frame_file missing in preload mode." >&2
-                # Skip frame to try to continue, or could exit
                 sleep "$frame_delay"
                 continue
             fi
 
-            cat "$chafa_frame_file" # Display pre-rendered frame
+            cat "$chafa_frame_file"
 
             if [ $QUIET -eq 0 ]; then
                 local progress=$((100 * i_seq / TOTAL_FRAMES))
@@ -247,8 +250,9 @@ play_chafa_frames() {
         current_loop=$((current_loop + 1))
     done
 
-    tput cnorm # Restore cursor
+    # No need for tput cnorm or clear here, cleanup will handle it
     if [ $QUIET -eq 0 ]; then tput cup "$info_line" 0; tput el; echo -e "\nPlayback complete."; fi
+    # The 'exit 0' at the end of the script will trigger the EXIT trap, which calls cleanup.
 }
 
 # --- Argument Parsing ---
@@ -292,29 +296,30 @@ if ! [[ "$NUM_THREADS" =~ ^[0-9]+$ ]] || [ "$NUM_THREADS" -le 0 ]; then echo "Er
 check_dependencies
 setup_temp_dir # Sets TEMP_DIR, JPG_FRAMES_DIR, CHAFA_FRAMES_DIR, and trap
 
+# Messages before play_chafa_frames will appear on the normal screen
 get_video_info
 extract_frames # Sets TOTAL_FRAMES
 
-RENDER_PID="" # Initialize RENDER_PID
+RENDER_PID=""
 
 if [ "$PLAY_MODE" == "preload" ]; then
     if [ $QUIET -eq 0 ]; then echo "Mode: Preload. Rendering all frames before playback."; fi
-    render_all_chafa_frames_parallel # This is a blocking call
+    render_all_chafa_frames_parallel
     play_chafa_frames
 elif [ "$PLAY_MODE" == "stream" ]; then
     if [ $QUIET -eq 0 ]; then echo "Mode: Stream. Rendering frames in background during playback."; fi
-    # Launch rendering in the background
     render_all_chafa_frames_parallel &
-    RENDER_PID=$! # Get PID of the background rendering process
+    RENDER_PID=$!
     if [ $QUIET -eq 0 ]; then echo "Background rendering started (PID: $RENDER_PID)."; fi
     play_chafa_frames
-    # After playback, wait for the background rendering to complete if it's still running
     if ps -p "$RENDER_PID" > /dev/null; then
         if [ $QUIET -eq 0 ]; then echo "Waiting for background rendering (PID: $RENDER_PID) to complete..."; fi
         wait "$RENDER_PID"
         if [ $QUIET -eq 0 ]; then echo "Background rendering complete."; fi
     fi
-    RENDER_PID="" # Clear RENDER_PID as it's done
+    RENDER_PID=""
 fi
 
+# Normal exit will trigger the EXIT trap, which calls cleanup.
+# cleanup will restore cursor and screen.
 exit 0

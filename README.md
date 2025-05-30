@@ -118,7 +118,7 @@ The `hitvid` workflow varies depending on the selected playback mode:
 \* **Video Information Retrieval:** Uses `ffprobe` to get video original resolution, duration, etc.
 \* **Frame Extraction (FFmpeg):** Uses `ffmpeg` to extract video frames as a series of JPG images at the specified FPS, storing them in a `jpg_frames` subdirectory within the temporary directory.
 
-**2. `preload` Mode (Default):**
+**2. `preload` Mode:**
 \* **Parallel Chafa Frame Rendering:**
 \* The script iterates through all extracted JPG image frames.
 \* It uses `xargs -P` to launch multiple `chafa` processes in parallel, converting each JPG frame into a text file containing ANSI escape sequences. These text files represent the character art displayed in the terminal.
@@ -130,7 +130,7 @@ The `hitvid` workflow varies depending on the selected playback mode:
 \* A brief `sleep` is performed between frames according to the set FPS.
 \* After playback, the cursor is restored, and completion information is displayed.
 
-**3. `stream` Mode:**
+**3. `stream` Mode (Default):**
 \* **Background Chafa Frame Parallel Rendering:**
 \* After JPG frame extraction is complete, the script launches the `render_all_chafa_frames_parallel` function **in the background**. This function also uses `xargs -P` to render Chafa text frames in parallel.
 \* The main script **does not** wait for all frames to render; instead, it immediately proceeds to the playback stage.

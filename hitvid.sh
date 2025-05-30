@@ -5,7 +5,7 @@
 # Description: Play videos in terminal using chafa for rendering frames
 
 # Default settings
-FPS=5 # Set the playback frames per second.
+FPS=15 # Set the playback frames per second.
 SCALE_MODE="fit" # Set scaling mode: fit, fill, stretch.
 COLORS="256" # Set color mode: 2, 16, 256, full (full color)
 DITHER="ordered" # Set dithering mode: none, ordered, diffusion.

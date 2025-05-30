@@ -1,5 +1,9 @@
 # Hitmux `hitvid` - 终端视频播放器
 
+[简体中文](https://github.com/Hitmux/hitvid/blob/main/README_zh.md) [English](https://github.com/Hitmux/hitvid/blob/main/README.md)
+
+[hitvid_zh.sh](https://github.com/Hitmux/hitvid/blob/main/hitvid_zh.sh)是中文版源代码
+
 ## [Hitmux 官方网站 https://hitmux.top](https://hitmux.top)
 
 `hitvid` 是一个基于 Bash 脚本的终端视频播放器，它使用 `ffmpeg` 提取视频帧，并利用 `chafa` 将这些帧渲染成字符画，从而在终端中实现视频播放。

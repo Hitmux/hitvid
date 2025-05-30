@@ -5,7 +5,7 @@
 # 描述: 使用chafa在终端中播放视频，渲染帧
 
 # 默认设置
-FPS=5 # 设置播放帧率。
+FPS=15 # 设置播放帧率。
 SCALE_MODE="fit" # 设置缩放模式: fit (适应), fill (填充), stretch (拉伸)。
 COLORS="256" # 设置颜色模式: 2, 16, 256, full (全彩)
 DITHER="ordered" # 设置抖动模式: none (无), ordered (有序), diffusion (扩散)。

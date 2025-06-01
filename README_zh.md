@@ -2,7 +2,6 @@
 
 [简体中文](https://github.com/Hitmux/hitvid/blob/main/README_zh.md) [English](https://github.com/Hitmux/hitvid/blob/main/README.md)
 
-`hitvid_zh.sh` 是中文版源代码。
 
 ## [Hitmux 官方网站 https://hitmux.top](https://hitmux.top)
 

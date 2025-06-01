@@ -1,4 +1,4 @@
-## Hitmux `hitvid` v1.0.2 - Terminal-based Video Player
+## Hitmux `hitvid` - Terminal-based Video Player
 
 [简体中文](https://github.com/Hitmux/hitvid/blob/main/README_zh.md) [English](https://github.com/Hitmux/hitvid/blob/main/README.md)
 

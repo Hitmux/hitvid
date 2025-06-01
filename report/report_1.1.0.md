@@ -1,7 +1,3 @@
-以下是 `hitvid` 改进报告的英文 Markdown 格式版本，符合 GitHub 新版本技术报告的风格：
-
----
-
 ## `hitvid` Version Improvement Technical Report
 
 **Project Name:** `hitvid` - Terminal Video Player

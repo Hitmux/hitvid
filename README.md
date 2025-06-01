@@ -1,8 +1,5 @@
 ## Hitmux `hitvid` - Terminal-based Video Player
 
-[简体中文](https://github.com/Hitmux/hitvid/blob/main/README_zh.md) [English](https://github.com/Hitmux/hitvid/blob/main/README.md)
-
-
 ## [Hitmux Official Website https://hitmux.top](https://hitmux.top)
 
 `hitvid` is a Bash script-based terminal video player that uses `ffmpeg` to extract video frames and `chafa` to render these frames as character art, thus achieving video playback in the terminal.
@@ -40,12 +37,14 @@ Before running `hitvid`, please ensure that the following tools are installed on
 *   **`nproc`:** (Optional, recommended) For getting the number of CPU cores to optimize parallel processing threads. If not installed, it defaults to 4 threads.
 *   **`xargs`:** For executing commands in parallel.
 *   **`awk`:** For floating-point arithmetic.
+*   **`bc`:** For arbitrary-precision arithmetic, used in frame delay calculation.
+*   **`grep`:** For text searching and filtering.
 
 **Installation Example (Debian/Ubuntu):**
 
 ```bash
 sudo apt update
-sudo apt install ffmpeg chafa coreutils util-linux
+sudo apt install ffmpeg chafa coreutils util-linux bc grep
 ```
 
 (`coreutils` usually includes `nproc` and `xargs`, `util-linux` usually includes `tput`, `awk` is typically part of `gawk` or `mawk` and is generally pre-installed on most systems.)
@@ -132,40 +131,40 @@ During playback of these examples, you can use the interactive controls (Space, 
 
 **1. Common Steps (All Modes):**
 *   **Parameter Parsing & Validation:** Reads and validates command-line options.
-*   **Dependency Check:** Confirms that essential tools (`ffmpeg`, `chafa`, `tput`, `nproc`, `xargs`, `awk`) are installed.
+*   **Dependency Check:** Confirms that essential tools (`ffmpeg`, `chafa`, `tput`, `nproc`, `xargs`, `awk`, `bc`, `grep`) are installed.
 *   **Temporary Directory Setup:** Creates a temporary directory (e.g., `/dev/shm/hitvid.XXXXXX` or `/tmp/hitvid.XXXXXX`) to store intermediate files. This directory is automatically cleaned up when the script exits.
 *   **Video Information Retrieval:** Uses `ffprobe` to get the video's original resolution, duration, and other relevant information.
-*   **Frame Extraction (FFmpeg with Pre-scaling):** Uses `ffmpeg` to extract the video into a series of JPG image frames at the specified FPS. Crucially, `ffmpeg` applies a `-vf` (video filter) to pre-scale the frames to an approximate pixel resolution that matches the requested terminal character dimensions. This offloads significant scaling work from `chafa` and helps maintain aspect ratio and performance. The JPG frames are saved in the `jpg_frames` subdirectory.
+*   **Frame Extraction (FFmpeg with Pre-scaling):** Uses `ffmpeg` to extract the video into a series of JPG image frames at the specified FPS. Crucially, `ffmpeg` applies a `-vf` (video filter) to pre-scale the frames to an approximate pixel resolution that matches the requested terminal character dimensions (calculated using `CHAR_PIXEL_WIDTH_APPROX` and `CHAR_PIXEL_HEIGHT_APPROX`). This offloads significant scaling work from `chafa` and helps maintain aspect ratio and performance. The JPG frames are saved in the `jpg_frames` subdirectory.
 
 **2. `preload` (Preload) Mode:**
 *   **Parallel Chafa Frame Rendering:**
-    *   The script iterates through all extracted JPG image frames.
-    *   It uses `xargs -P` (parallel execution) to launch multiple `chafa` processes concurrently to convert each JPG frame into a text file containing ANSI escape sequences. These text files represent the character art displayed in the terminal.
+    *   The script waits for all extracted JPG image frames to be available.
+    *   It then uses `xargs -P` (parallel execution) to launch multiple `chafa` processes concurrently to convert each JPG frame into a text file containing ANSI escape sequences. These text files represent the character art displayed in the terminal.
     *   The converted text frames are stored in the `chafa_frames` subdirectory.
-    *   This step waits for *all* frames to be rendered completely before proceeding to playback, ensuring the smoothest possible experience.
+    *   This step waits for *all* frames to be rendered completely before proceeding to playback, ensuring the smoothest possible experience. Progress is displayed during this phase.
 *   **Playback:**
     *   Clears the screen and hides the cursor.
     *   Reads the pre-rendered text frame files from the `chafa_frames` directory in order and outputs their content to the terminal using the `cat` command. `chafa`'s `--clear` option ensures each new frame overwrites the previous one.
     *   Introduces a dynamic `sleep` delay between frames to maintain the desired playback FPS, accounting for the actual time taken to `cat` and display the frame.
     *   Interactive controls (pause, seek, speed change) are handled by non-blocking key reads.
-    *   Playback progress is displayed on a dedicated line.
+    *   Playback progress and status are displayed on a dedicated line at the bottom of the terminal.
 
 **3. `stream` (Streaming) Mode (Default):**
 *   **Background Parallel Chafa Frame Rendering:**
-    *   After JPG frame extraction is complete, the script launches the `render_all_chafa_frames_parallel` function **in the background** (as a child process). This function also uses `xargs -P` to render Chafa text frames in parallel, similar to the `preload` mode, but it does not block the main script's execution.
-    *   The first frame is typically pre-rendered synchronously for faster startup.
+    *   After JPG frame extraction is initiated by `ffmpeg` (running in a background daemon), the script launches a separate `render_chafa_daemon` function **in the background** (as a child process). This function also uses `xargs -P` internally to render Chafa text frames in parallel as soon as their corresponding JPG frames become available. This non-blocking rendering allows playback to begin quickly.
+    *   The first frame is typically pre-rendered synchronously for faster initial display.
 *   **Playback (Simultaneous Rendering):**
     *   Clears the screen and hides the cursor.
     *   When it's time to play the Nth frame:
         *   It first checks if the corresponding Chafa text frame file (`chafa_frames/frame-XXXXN.txt`) has already been generated by the background renderer.
-        *   If the file does not exist, the player pauses its display and waits briefly until the background rendering process generates that file. During this waiting period, it also periodically checks if the background rendering process has unexpectedly terminated.
+        *   If the file does not exist, the player pauses its display and waits briefly until the background rendering process generates that file. During this waiting period, it also periodically checks if the background rendering or FFmpeg process has unexpectedly terminated.
         *   Once the frame file is available, its content is immediately `cat`ed to the terminal.
     *   Similar to `preload` mode, a dynamic `sleep` delay maintains the desired FPS, and interactive controls are processed.
-    *   After playback, if the background rendering process is still running, the main script waits for it to complete before exiting.
+    *   Playback progress and status are displayed on a dedicated line at the bottom of the terminal.
 
 **4. Cleanup:**
 *   Regardless of how the script exits (normal completion, user interruption via `Ctrl+C`, or an error), a `trap` mechanism ensures that the `cleanup` function is executed.
-*   The `cleanup` function restores the terminal settings (`stty sane`), makes the cursor visible (`tput cnorm`), restores the normal screen buffer (`tput rmcup`), and then safely deletes the entire temporary directory and its contents. If the background rendering process is still running, it attempts to terminate it.
+*   The `cleanup` function restores the terminal settings (`stty sane`), makes the cursor visible (`tput cnorm`), restores the normal screen buffer (`tput rmcup`), and then safely deletes the entire temporary directory and its contents. It also attempts to terminate any lingering background FFmpeg or Chafa rendering processes.
 
 -----
 
@@ -183,4 +182,4 @@ During playback of these examples, you can use the interactive controls (Space, 
     *   Switching to `preload` mode for the smoothest playback experience (but with a longer initial waiting time).
 *   **Error: `command not found`:** Ensure all dependencies are correctly installed and are in your system's `PATH` environment variable.
 *   **FFmpeg Errors:** If the video file is corrupted, its format is not supported by `ffmpeg`, or `ffmpeg` encounters other issues, frame extraction might fail. The script will try to display `ffmpeg`'s error log if not in quiet mode.
-*   **Chafa Errors:** If `chafa` fails to process an image (e.g., due to corrupted input), it might produce an empty frame or an error. The script currently continues in such cases for `stream` mode, displaying an empty frame, but includes checks for the background renderer process terminating.
+*   **Chafa Errors:** If `chafa` fails to process an image (e.g., due to corrupted input), it might produce an empty frame or an error. In `stream` mode, the script is designed to skip missing frames and continue playback, but it will check if the background rendering process has terminated unexpectedly.

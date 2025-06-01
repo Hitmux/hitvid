@@ -1,4 +1,4 @@
-## Hitmux `hitvid` v1.0.2 - 终端视频播放器
+## Hitmux `hitvid` - 终端视频播放器
 
 [简体中文](https://github.com/Hitmux/hitvid/blob/main/README_zh.md) [English](https://github.com/Hitmux/hitvid/blob/main/README.md)
 

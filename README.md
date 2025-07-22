@@ -4,6 +4,11 @@
 
 `hitvid` is a Bash script-based terminal video player that uses `ffmpeg` to extract video frames and `chafa` to render these frames as character art, thus achieving video playback in the terminal.
 
+### Added a version written in Go language. Go is much faster than shell, and ffmpeg and chafa are built-in, no need to install, and it is faster.
+### Currently, the Go version is in the testing stage.
+
+(https://github.com/Hitmux/hitvid/blob/main/main.go)[Go version]
+
 -----
 
 ## Features

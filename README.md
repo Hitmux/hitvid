@@ -7,7 +7,7 @@
 ### Added a version written in Go language. Go is much faster than shell, and ffmpeg and chafa are built-in, no need to install, and it is faster.
 ### Currently, the Go version is in the testing stage.
 
-(https://github.com/Hitmux/hitvid/blob/main/main.go)[Go version]
+[Go version](https://github.com/Hitmux/hitvid/blob/main/main.go) 
 
 -----
 

@@ -127,7 +127,7 @@ check_dependencies() {
 }
 
 setup_temp_dir() {
-    local temp_base_path="/tmp"
+    local temp_base_path="$HOME/tmp"
     local use_shm=0
     local temp_dir_attempt=""
 

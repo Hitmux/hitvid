@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# hitvid v1.1.1 - A terminal-based video player using chafa
+# hitvid v1.1.2 - A terminal-based video player using chafa
 # Author: Hitmux
 # Description: Play videos in terminal using chafa for rendering frames
 

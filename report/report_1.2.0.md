@@ -1,7 +1,3 @@
-Die Go-Implementierung ist der Shell-Version in fast jeder Hinsicht architektonisch überlegen. **Die primäre Empfehlung ist, die Go-Version als primäre Codebasis zu übernehmen und weiterzuentwickeln, während das Shell-Skript als Prototyp betrachtet wird.** Die Go-Version bietet eine solide Grundlage für hohe Leistung, Stabilität und zukünftige Erweiterbarkeit. Die folgenden Abschnitte beschreiben die Stärken und Schwächen beider Versionen und schlagen konkrete Verbesserungen für die Go-Implementierung vor.
-
----
-
 ### **1. Vergleichende Analyse**
 
 #### **1.1 Architektur und Design**
@@ -97,3 +93,4 @@ Die Go-Version ist eine ausgezeichnete Grundlage. Die folgenden Verbesserungen z
         2.  Führen Sie eine `Player`-Struktur ein, die den gesamten Wiedergabezustand (Mutex, `isPaused`, `currentFrameIndex` usw.) kapselt.
     *   **Logik:** Die `main`-Funktion initialisiert die `Config`-Struktur und übergibt sie an die `playVideo`-Funktion. Diese wiederum erstellt eine `Player`-Instanz. Zustandsänderungen erfolgen über Methoden auf dem `Player`-Objekt (z. B. `player.Pause()`, `player.Seek()`), die die Sperrung intern verwalten.
     *   **Vorteil:** Verbessert die Kapselung, Lesbarkeit und Wartbarkeit des Codes erheblich.
+
